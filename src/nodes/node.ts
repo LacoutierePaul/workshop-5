@@ -60,11 +60,11 @@ export async function node(
     if (!isFaulty) {
       if (messageType == "propose") {
         error("node", nodeId, "received propose", x, "actual k ;",k)
-        proposals[k].push(x)
+        proposals[k-1].push(x)
         //proposals.set(k, x);
         error("proposals : ",proposals,"actual k ;",k)
         //let proposal = proposals.get(k);
-        let proposal = proposals[k];
+        let proposal = proposals[k-1];
         error("N-F: ",N-F,"proposal length : ",proposal.length,"actual k ;",k)
        if(proposal.length >= (N - F)) {
          error("node", nodeId, "proposed", proposal, "actual k ;", k, "length : ", proposal.length,)
@@ -99,8 +99,8 @@ export async function node(
       }
       else if (messageType == "vote") {
       //  votes.set(k, x);
-        votes[k].push(x)
-          let vote = votes[k];
+        votes[k-1].push(x)
+          let vote = votes[k-1];
          if( vote.length >= (N - F)) {
           let count0 = 0;
           let count1 = 0;

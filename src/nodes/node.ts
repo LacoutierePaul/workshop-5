@@ -24,10 +24,8 @@ export async function node(
     decided: null,
     k: null,
   }
-  let proposals: number[][] = Array.from({ length: N }, () => []);
-  let votes: number[][] = Array.from({ length: N }, () => []);
- // let proposals: Map<number, Value[]> = new Map(); //maybe nodestate
-  //let votes: Map<number, Value[]> = new Map();
+  let proposals: Map<number, Value[]> = new Map();
+  let votes: Map<number, Value[]> = new Map();
 
   // Route to check node status
   node.get("/status", (req, res) => {
@@ -57,87 +55,68 @@ export async function node(
   // Route to receive messages
   node.post("/message", async (req, res) => {
     let { k, x, messageType } = req.body;
-    if (!isFaulty) {
+    if (!isFaulty && !currentNodeState.killed) {
       if (messageType == "propose") {
-        error("node", nodeId, "received propose", x, "actual k ;",k)
-        proposals[k-1].push(x)
-        //proposals.set(k, x);
-        error("proposals : ",proposals,"actual k ;",k)
-        //let proposal = proposals.get(k);
-        let proposal = proposals[k-1];
-        error("N-F: ",N-F,"proposal length : ",proposal.length,"actual k ;",k)
-       if(proposal.length >= (N - F)) {
-         error("node", nodeId, "proposed", proposal, "actual k ;", k, "length : ", proposal.length,)
-         let count0 = 0;
-         let count1 = 0;
-         for (let i = 0; i < proposal.length; i++) {
-           if (proposal[i] == 0) {
-             count0++;
-           } else if (proposal[i] == 1) {
-             count1++;
-           }
-         }
-         if (count0 > (N - F) / 2) {
-           x = 0;
-         } else if (count1 > (N - F) / 2) {
-           x = 1;
-         } else {
-           x = "?";
-         }
-         error("node", nodeId, "proposed", currentNodeState.x, "actual k ;", k)
-         for (let i = 0; i < N; i++) {
-           error("vote send to ", i, "from", nodeId, "actual k ;", k)
-           fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json',
-             },
-             body: JSON.stringify({k: k, x: x, messageType: "vote"}),
-           });
-         }
-       }
+        if (!proposals.has(k)) {
+          proposals.set(k, []);
+        }
+        proposals.get(k)!.push(x); // Use '!' to assert non-null after the check
+        let proposal = proposals.get(k)!;
+        if (proposal.length >= (N - F)) {
+          let count0 = proposal.filter((el) => el == 0).length;
+          let count1 = proposal.filter((el) => el == 1).length;
+          if (count0 > (N - F) / 2) {
+            x = 0;
+          } else if (count1 > (N - F) / 2) {
+            x = 1;
+          } else {
+            x = "?";
+          }
+          for (let i = 0; i < N; i++) {
+            fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ k: k, x: x, messageType: "vote" }),
+            });
+          }
+        }
       }
       else if (messageType == "vote") {
-      //  votes.set(k, x);
-        votes[k-1].push(x)
-          let vote = votes[k-1];
-         if( vote.length >= (N - F)) {
-          let count0 = 0;
-          let count1 = 0;
-          for (let i = 0; i < vote.length; i++) {
-            if (vote[i] == 0) {
-              count0++;
-            } else if (vote[i] == 1){
-              count1++;
-            }
-          }
-          if (count0 >= F + 1) {
-            currentNodeState.x = 0;
-            currentNodeState.decided = true;
-            error("node", nodeId, "decided", currentNodeState.x)
-          } else if (count1 >= F + 1) {
-            currentNodeState.x = 1;
-            currentNodeState.decided = true;
-            error("node", nodeId, "decided", currentNodeState.x)
-          } else {
-            if (count0 > 1) {
+        if (!votes.has(k)) {
+          votes.set(k, []);
+        }
+        votes.get(k)!.push(x)
+        let vote = votes.get(k)!;
+          if (vote.length >= (N - F)) {
+            let count0 = vote.filter((el) => el == 0).length;
+            let count1 = vote.filter((el) => el == 1).length;
+            if (count0 >= F + 1) {
               currentNodeState.x = 0;
-            } else if (count1 > 1) {
+              currentNodeState.decided = true;
+            } else if (count1 >= F + 1) {
               currentNodeState.x = 1;
+              currentNodeState.decided = true;
             } else {
-              currentNodeState.x = Math.round(Math.random()) as 0 | 1;
-            }
-            currentNodeState.k=k+1;
+              if (count0 + count1 > 0 && count0 > count1) {
+                currentNodeState.x = 0;
+              } else if (count0 + count1 > 0 && count0 < count1) {
+                currentNodeState.x = 1;
+              } else {
+                currentNodeState.x = "?";
+              }
+              currentNodeState.k = k + 1;
 
-            for (let i = 0; i < N; i++) {
-                error("message send to ", i, "from", nodeId, "actual k ;",k)
+              for (let i = 0; i < N; i++) {
                 fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ k: currentNodeState.k, x: currentNodeState.x, messageType: "propose" }),
+                  body: JSON.stringify({k: currentNodeState.k, x: currentNodeState.x, messageType: "propose"}),
                 });
+
             }
           }
         }
@@ -148,32 +127,29 @@ export async function node(
 
   // Route to start the consensus algorithm
   node.get("/start", async (req, res) => {
-      while (!nodesAreReady()) {
-        await delay(5);
+    while (!nodesAreReady()) {
+      await delay(5);
+    }
+    if (!isFaulty) {
+      currentNodeState.k = 1;
+      currentNodeState.x = initialValue;
+      currentNodeState.decided = false;
+      for (let i = 0; i < N; i++) {
+        fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ k: currentNodeState.k, x: currentNodeState.x, messageType: "propose" }),
+        });
       }
-        if (!isFaulty) {
-          currentNodeState.k = 1;
-          currentNodeState.x = initialValue;
-          currentNodeState.decided = false;
-          error("Hello")
-
-          for (let i = 0; i < N; i++) {
-            error("message send to ", i, "from", nodeId, "actual k ;",currentNodeState.k)
-            fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({k: currentNodeState.k, x: currentNodeState.x, messageType: "propose"}),
-            });
-          }
-        }
-        else {
-          currentNodeState.decided = null;
-          currentNodeState.x = null;
-          currentNodeState.k = null;
-        }
-        res.status(200).send("Consensus algorithm started.");
+    }
+    else {
+      currentNodeState.decided = null;
+      currentNodeState.x = null;
+      currentNodeState.k = null;
+    }
+    res.status(200).send("Consensus algorithm started.");
   });
 
   // Start the server

@@ -62,11 +62,10 @@ export async function node(
         }
         proposals.get(k)!.push(x); // Use '!' to assert non-null after the check
         let proposal = proposals.get(k)!;
+
         if (proposal.length >= (N - F)) {
-          console.log("proposal", proposal,"node :",nodeId,"k :",k)
           let count0 = proposal.filter((el) => el == 0).length;
           let count1 = proposal.filter((el) => el == 1).length;
-          console.log("count0",count0,"count1",count1,"N",N,"F",F,"N/2",N/2)
           if (count0 > (N / 2)) {
             x = 0;
           } else if (count1 > (N / 2)) {

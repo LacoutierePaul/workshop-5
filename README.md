@@ -42,7 +42,8 @@ yarn test
 
 ### Running the Network Manually
 Modify the start.ts file with desired parameters, then:
-```yarn start
+```bash
+yarn start
  ```
 
 

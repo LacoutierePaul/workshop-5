@@ -6,7 +6,7 @@
 
 ---
 
-## Project Overview
+## 🚀 Project Overview
 
 This project implements the **Ben-Or decentralized consensus algorithm** in **TypeScript**. The Ben-Or algorithm uses randomness to achieve consensus in a decentralized network of nodes, which is fundamental for blockchain and other decentralized technologies.
 
@@ -14,7 +14,7 @@ The repository provides the basic network structure, and the goal was to impleme
 
 ---
 
-## What I Did
+## ✅ What I Did
 
 - Implemented the inner workings of the Ben-Or consensus algorithm following the project guidelines.
 - Ensured the algorithm handles asynchronous consensus with probabilistic termination.
@@ -24,7 +24,7 @@ The repository provides the basic network structure, and the goal was to impleme
 
 ---
 
-## Setup & Usage
+## ⚙️ Setup & Usage
 
 ### Requirements
 - Node.js version **18** or higher.
@@ -49,7 +49,7 @@ yarn start
 
 ---
 
-## Resources
+## 📚 Resources
 
 To understand the Ben-Or algorithm, I referred to the following resources:
 
@@ -59,7 +59,7 @@ To understand the Ben-Or algorithm, I referred to the following resources:
 
 ---
 
-## Grading
+## 🏆 Grading
 
 - Successfully passed all unit tests (20/20 points).  
 - Implementation is original and completed individually, following the exercise rules.
